@@ -153,6 +153,40 @@ h1 {
 /* Числа в клітинках */
 .cell.revealed:not(.mine) {
     font-weight: bold;
+    color: #333;
+}
+
+/* Кольори для різних чисел */
+.cell.number-1 {
+    color: #0000ff;
+}
+
+.cell.number-2 {
+    color: #008000;
+}
+
+.cell.number-3 {
+    color: #ff0000;
+}
+
+.cell.number-4 {
+    color: #000080;
+}
+
+.cell.number-5 {
+    color: #800000;
+}
+
+.cell.number-6 {
+    color: #008080;
+}
+
+.cell.number-7 {
+    color: #000000;
+}
+
+.cell.number-8 {
+    color: #808080;
 }
 
 /* ===== КЛІТИНКА З МІНОЮ ===== */
@@ -163,6 +197,15 @@ h1 {
     box-shadow: inset 1px 1px 3px rgba(255, 255, 255, 0.3),
                 inset -1px -1px 3px rgba(0, 0, 0, 0.3);
     animation: mineReveal 0.3s ease;
+}
+
+/* Міна, на яку натиснув користувач */
+.cell.mine.clicked {
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4),
+                inset -2px -2px 5px rgba(255, 255, 255, 0.2),
+                0 0 15px rgba(255, 0, 0, 0.6);
+    animation: mineBurst 0.4s ease;
 }
 
 @keyframes mineReveal {
@@ -176,6 +219,18 @@ h1 {
     }
 }
 
+@keyframes mineBurst {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* ===== КЛІТИНКА З ПРАПОРЦЕМ ===== */
 .cell.flagged {
     background: linear-gradient(135deg, #ffd93d 0%, #ffb700 100%);
@@ -184,6 +239,32 @@ h1 {
     box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.5),
                 inset -2px -2px 5px rgba(0, 0, 0, 0.2);
     font-size: 1.3rem;
+}
+
+/* Прапорець на закритій клітинці */
+.cell.closed.flagged {
+    background: linear-gradient(135deg, #ffd93d 0%, #ffb700 100%);
+    border: 2px solid #ff9500;
+}
+
+.cell.closed.flagged:hover {
+    box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.6),
+                inset -2px -2px 5px rgba(0, 0, 0, 0.15),
+                0 0 10px rgba(255, 165, 0, 0.5);
+}
+
+/* Прапорець на міні */
+.cell.flagged.mine {
+    background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
+    border: 2px solid #ff6600;
+    box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.4),
+                inset -2px -2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Прапорець на відкритій клітинці без міни */
+.cell.revealed.flagged:not(.mine) {
+    background: linear-gradient(135deg, #fff4a3 0%, #ffe066 100%);
+    border: 1px solid #ffb800;
 }
 
 .cell.flagged:hover:not(.revealed) {
