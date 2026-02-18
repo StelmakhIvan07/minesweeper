@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сапер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🏁 САПЕР 🏁</h1>
+        
+        <div class="game-header">
+            <div class="header-item">
+                <div class="header-label">⏱️ Час</div>
+                <div class="timer" id="timer">0</div>
+            </div>
+            
+            <button class="start-btn" id="startBtn">Нова гра</button>
+            
+            <div class="header-item">
+                <div class="header-label">🚩 Прапорці</div>
+                <div class="flag-counter" id="flagCounter">10/10</div>
+            </div>
+        </div>
+
+        <div class="game-field" id="gameField">
+            <!-- Гра польне буде генеровано JavaScript -->
+        </div>
+
+        <div class="game-message" id="gameMessage"></div>
+    </div>
+
+    <script>
+        // Конфіги гри
+        const GRID_SIZE = 10;
+        const MINES_COUNT = 10;
+        
+        let gameState = {
+            grid: [],
+            revealed: [],
+            flagged: [],
+            gameActive: false,
+            startTime: null,
+            timerInterval: null,
+            minesRemaining: MINES_COUNT
+        };
+
+        // Ініціалізація гри
+        function initGame() {
+            gameState.grid = [];
+            gameState.revealed = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
+            gameState.flagged = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
+            gameState.gameActive = true;
+            gameState.minesRemaining = MINES_COUNT;
+            gameState.startTime = Date.now();
+            
+            // Очищення таймера
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+            }
+            
+            // Ініціалізація таймера
+            document.getElementById('timer').textContent = '0';
+            startTimer();
+            
+            // Генерація пустого поля
+            for (let i = 0; i < GRID_SIZE; i++) {
+                gameState.grid[i] = Array(GRID_SIZE).fill(0);
+            }
+            
+            // Розміщення мін
+            placeMines();
+            
+            // Розрахунок цифр
+            calculateNumbers();
+            
+            // Рендеринг до
+            renderGameField();
+            
+            // Очищення повідомлень
+            document.getElementById('gameMessage').textContent = '';
+            document.getElementById('gameMessage').className = 'game-message';
+        }
+
+        function placeMines() {
+            let minesPlaced = 0;
+            while (minesPlaced < MINES_COUNT) {
+                const row = Math.floor(Math.random() * GRID_SIZE);
+                const col = Math.floor(Math.random() * GRID_SIZE);
+                
+                if (gameState.grid[row][col] !== 'M') {
+                    gameState.grid[row][col] = 'M';
+                    minesPlaced++;
+                }
+            }
+        }
+
+        function calculateNumbers() {
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (gameState.grid[i][j] !== 'M') {
+                        let count = 0;
+                        for (let di = -1; di <= 1; di++) {
+                            for (let dj = -1; dj <= 1; dj++) {
+                                const ni = i + di;
+                                const nj = j + dj;
+                                if (ni >= 0 && ni < GRID_SIZE && nj >= 0 && nj < GRID_SIZE) {
+                                    if (gameState.grid[ni][nj] === 'M') {
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+                        gameState.grid[i][j] = count;
+                    }
+                }
+            }
+        }
+
+        function renderGameField() {
+            const gameField = document.getElementById('gameField');
+            gameField.innerHTML = '';
+            gameField.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    
+                    // Визначення стану клітинки
+                    if (gameState.revealed[i][j]) {
+                        cell.classList.add('revealed');
+                        if (gameState.grid[i][j] === 'M') {
+                            cell.classList.add('mine');
+                            cell.textContent = '💣';
+                        } else if (gameState.grid[i][j] > 0) {
+                            cell.textContent = gameState.grid[i][j];
+                        }
+                    } else {
+                        cell.classList.add('closed');
+                        if (gameState.flagged[i][j]) {
+                            cell.classList.add('flagged');
+                            cell.textContent = '🚩';
+                        }
+                    }
+                    
+                    cell.addEventListener('click', (e) => revealCell(i, j));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        toggleFlag(i, j);
+                    });
+                    
+                    gameField.appendChild(cell);
+                }
+            }
+        }
+
+        function revealCell(row, col) {
+            if (!gameState.gameActive || gameState.revealed[row][col] || gameState.flagged[row][col]) {
+                return;
+            }
+            
+            gameState.revealed[row][col] = true;
+            
+            if (gameState.grid[row][col] === 'M') {
+                // Гра програна - показуємо усі міни
+                revealAllMines();
+                gameState.gameActive = false;
+                document.getElementById('gameMessage').textContent = '💀 Ви натрапили на міну! Гра закінчена!';
+                document.getElementById('gameMessage').className = 'game-message loss';
+                clearInterval(gameState.timerInterval);
+                return;
+            }
+            
+            // Автоматично розкриваємо сусідні клітинки, якщо число 0
+            if (gameState.grid[row][col] === 0) {
+                for (let di = -1; di <= 1; di++) {
+                    for (let dj = -1; dj <= 1; dj++) {
+                        const ni = row + di;
+                        const nj = col + dj;
+                        if (ni >= 0 && ni < GRID_SIZE && nj >= 0 && nj < GRID_SIZE) {
+                            if (!gameState.revealed[ni][nj]) {
+                                revealCell(ni, nj);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Перевірка на перемогу
+            checkWin();
+            renderGameField();
+        }
+
+        function toggleFlag(row, col) {
+            if (!gameState.gameActive || gameState.revealed[row][col]) {
+                return;
+            }
+            
+            gameState.flagged[row][col] = !gameState.flagged[row][col];
+            
+            if (gameState.flagged[row][col]) {
+                gameState.minesRemaining--;
+            } else {
+                gameState.minesRemaining++;
+            }
+            
+            updateFlagCounter();
+            renderGameField();
+        }
+
+        function updateFlagCounter() {
+            document.getElementById('flagCounter').textContent = `${gameState.minesRemaining}/${MINES_COUNT}`;
+        }
+
+        function revealAllMines() {
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (gameState.grid[i][j] === 'M') {
+                        gameState.revealed[i][j] = true;
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            let revealedNonMines = 0;
+            const totalNonMines = GRID_SIZE * GRID_SIZE - MINES_COUNT;
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (gameState.revealed[i][j] && gameState.grid[i][j] !== 'M') {
+                        revealedNonMines++;
+                    }
+                }
+            }
+            
+            if (revealedNonMines === totalNonMines) {
+                gameState.gameActive = false;
+                document.getElementById('gameMessage').textContent = '🎉 Вітаємо! Ви виграли!';
+                document.getElementById('gameMessage').className = 'game-message win';
+                clearInterval(gameState.timerInterval);
+            }
+        }
+
+        function startTimer() {
+            gameState.timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                document.getElementById('timer').textContent = elapsed;
+            }, 100);
+        }
+
+        // Слухачі подій
+        document.getElementById('startBtn').addEventListener('click', initGame);
+
+        // Старт гри при завантаженні сторінки
+        initGame();
+    </script>
+</body>
+</html>
